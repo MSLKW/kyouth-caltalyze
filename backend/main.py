@@ -4,6 +4,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend.ai_service import ask_ai
+from backend.calendar_parser import parse_calendar_file
+from backend.metrics_service import calculate_metrics
 
 app = FastAPI()
 
@@ -30,12 +32,19 @@ def health_check():
 @app.post("/api/upload-calendar")
 async def upload_calendar(file: UploadFile = File(...)):
     content = await file.read()
+    text_content = content.decode("utf-8", errors="ignore")
+
+    events = parse_calendar_file(text_content)
+    metrics = calculate_metrics(events)
 
     return {
         "filename": file.filename,
-        "file_size": len(content),
-        "message": "Calendar file received successfully"
-    }
+        "event_count": len(events),
+        "events": events,
+        "metrics": metrics,
+        "message": "Calendar file analyzed successfully"
+        }
+   
 
 
 @app.post("/api/ai-summary")
