@@ -31,20 +31,31 @@ def health_check():
 
 @app.post("/api/upload-calendar")
 async def upload_calendar(file: UploadFile = File(...)):
+    if not file.filename.endswith(".ics"):
+        return {"error": "Only .ics calendar files are allowed"}
+
     content = await file.read()
-    text_content = content.decode("utf-8", errors="ignore")
 
-    events = parse_calendar_file(text_content)
-    metrics = calculate_metrics(events)
+    if not content:
+        return {"error": "Uploaded file is empty"}
+    
+    try:
+        text_content = content.decode("utf-8", errors="ignore")
+        events = parse_calendar_file(text_content)
+        metrics = calculate_metrics(events)
 
-    return {
-        "filename": file.filename,
-        "event_count": len(events),
-        "events": events,
-        "metrics": metrics,
-        "message": "Calendar file analyzed successfully"
+        return {
+            "filename": file.filename,
+            "event_count": len(events),
+            "events": events,
+            "metrics": metrics,
+            "message": "Calendar file analyzed successfully"
         }
-   
+    except Exception as error:
+        return {
+            "error": "Failed to process calendar file",
+            "details": str(error)
+        }
 
 
 @app.post("/api/ai-summary")
