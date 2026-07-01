@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from backend.ai_service import ask_ai
+from backend.ai_service import ask_ai, generate_calendar_insight
 from backend.calendar_parser import parse_calendar_file
 from backend.metrics_service import calculate_metrics
 
@@ -43,12 +43,14 @@ async def upload_calendar(file: UploadFile = File(...)):
         text_content = content.decode("utf-8", errors="ignore")
         events = parse_calendar_file(text_content)
         metrics = calculate_metrics(events)
+        ai_insight = generate_calendar_insight(events, metrics)
 
         return {
             "filename": file.filename,
             "event_count": len(events),
             "events": events,
             "metrics": metrics,
+            "ai_insight": ai_insight,
             "message": "Calendar file analyzed successfully"
         }
     except Exception as error:
