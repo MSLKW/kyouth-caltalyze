@@ -13,7 +13,6 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-/* thin, quiet scrollbars for the scrollable panels */
 .scroll-quiet::-webkit-scrollbar {
 	width: 8px;
 }
