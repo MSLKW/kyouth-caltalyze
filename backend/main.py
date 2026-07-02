@@ -10,7 +10,7 @@ from backend.metrics_service import calculate_metrics
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.frontend("/", directory="dist")
 
 
 class ChatRequest(BaseModel):
@@ -20,10 +20,6 @@ class DeepDiveRequest(BaseModel):
     question: str
     events: list[dict[str, Any]]
     metrics: dict[str, Any]
-
-@app.get("/")
-def home():
-    return FileResponse("static/index.html")
 
 
 @app.get("/api/health")

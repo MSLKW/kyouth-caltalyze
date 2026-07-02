@@ -1,16 +1,6 @@
 name: caltalyze
 
 services:
-  frontend:
-    build: ./frontend
-    ports:
-      - "8000:8000"
-    networks:
-      - caltalyze
-    depends_on:
-      - backend
-    environment:
-      - BACKEND_URL=${BACKEND_URL}
   backend:
     build: ./backend
     networks:
@@ -19,12 +9,6 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL}
       - OLLAMA_MODEL=${OLLAMA_MODEL}
-  ollama: # can change up
-    build: ./ollama
-    networks:
-      - caltalyze
-    environment:
-      - PORT=${PORT}
 
 networks:
   caltalyze:

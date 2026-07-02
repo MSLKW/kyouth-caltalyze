@@ -8,7 +8,7 @@
 // under the same origin (e.g. via Vite's server.proxy, or same-domain deploy).
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-const ANALYZE_ENDPOINT = `${API_BASE_URL}/api/analyze-calendar`
+const ANALYZE_ENDPOINT = `${API_BASE_URL}/api/upload-calendar`
 
 export class CalendarApiError extends Error {
 	constructor(message, status) {
