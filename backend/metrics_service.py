@@ -45,7 +45,6 @@ def calculate_metrics(events: list[dict[str, Any]]) -> dict[str, Any]:
             meeting_count_by_staff[attendee] += 1
             meeting_minutes_by_staff[attendee] += duration_minutes
 
-
     shortest_meeting = min(meeting_durations) if meeting_durations else 0
     longest_meeting = max(meeting_durations) if meeting_durations else 0
     average_meeting = (
@@ -54,8 +53,7 @@ def calculate_metrics(events: list[dict[str, Any]]) -> dict[str, Any]:
         else 0
     )
     meeting_hours_by_day = {
-        day: round(minutes / 60, 2)
-        for day, minutes in meeting_minutes_by_day.items()
+        day: round(minutes / 60, 2) for day, minutes in meeting_minutes_by_day.items()
     }
 
     meeting_hours_by_staff = {
@@ -68,26 +66,22 @@ def calculate_metrics(events: list[dict[str, Any]]) -> dict[str, Any]:
     highest_meeting_load_staff = None
     if meeting_minutes_by_staff:
         highest_meeting_load_staff = max(
-            meeting_minutes_by_staff,
-            key=meeting_minutes_by_staff.get
+            meeting_minutes_by_staff, key=meeting_minutes_by_staff.get
         )
 
     return {
         "total_events": total_events,
         "total_meeting_minutes": total_meeting_minutes,
         "total_meeting_hours": round(total_meeting_minutes / 60, 2),
-
         "shortest_meeting_minutes": shortest_meeting,
         "average_meeting_minutes": average_meeting,
         "longest_meeting_minutes": longest_meeting,
-
         "meetings_by_day": dict(meetings_by_day),
         "meeting_minutes_by_day": dict(meeting_minutes_by_day),
         "meeting_hours_by_day": meeting_hours_by_day,
         "busiest_day": busiest_day,
-
         "meeting_count_by_staff": dict(meeting_count_by_staff),
         "meeting_minutes_by_staff": dict(meeting_minutes_by_staff),
         "meeting_hours_by_staff": meeting_hours_by_staff,
-        "highest_meeting_load_staff": highest_meeting_load_staff
+        "highest_meeting_load_staff": highest_meeting_load_staff,
     }

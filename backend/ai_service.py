@@ -8,11 +8,7 @@ MODEL_NAME = "deepseek-r1:1.5b"
 
 
 def ask_ai(prompt: str) -> str:
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False
-    }
+    payload = {"model": MODEL_NAME, "prompt": prompt, "stream": False}
 
     response = requests.post(OLLAMA_URL, json=payload)
     response.raise_for_status()
@@ -21,7 +17,9 @@ def ask_ai(prompt: str) -> str:
     return data.get("response", "")
 
 
-def generate_calendar_insight(events: list[dict[str, Any]], metrics: dict[str, Any]) -> str:
+def generate_calendar_insight(
+    events: list[dict[str, Any]], metrics: dict[str, Any]
+) -> str:
     prompt = f"""
 You are an AI assistant for a calendar analyzer system.
 
@@ -43,10 +41,9 @@ Keep the answer clear, concise, and business-focused.
 
     return ask_ai(prompt)
 
+
 def ask_calendar_deep_dive(
-    question: str,
-    events: list[dict[str, Any]],
-    metrics: dict[str, Any]
+    question: str, events: list[dict[str, Any]], metrics: dict[str, Any]
 ) -> str:
     prompt = f"""
 You are an AI assistant for managers analyzing employee calendar data.
