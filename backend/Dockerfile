@@ -1,16 +1,20 @@
-FROM python:3.14.4-bookworm
-
-COPY --from=docker.io/astral/uv:latest /uv /uvx /bin/
+FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN mkdir src
+ENV PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONUNBUFFERED=1
 
-COPY pyproject.toml uv.lock ./
+# Install dependencies first so this layer is cached across code-only changes
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./src/. ./src/.
+COPY app ./app
 
-RUN uv sync
+EXPOSE 8000
 
-ENTRYPOINT ["uv", "run", "uvicorn"]
-CMD ["--app-dir", "src", "--host", "0.0.0.0", "--port", "8001", "main:app"]
+# Basic container-level health check hitting the app's own /health route
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+	CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
