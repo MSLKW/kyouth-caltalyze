@@ -2,8 +2,9 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from typing import Any
 
-from backend.ai_service import ask_ai, generate_calendar_insight
+from backend.ai_service import ask_ai, generate_calendar_insight, ask_calendar_deep_dive
 from backend.calendar_parser import parse_calendar_file
 from backend.metrics_service import calculate_metrics
 
@@ -15,6 +16,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ChatRequest(BaseModel):
     message: str
 
+class DeepDiveRequest(BaseModel):
+    question: str
+    events: list[dict[str, Any]]
+    metrics: dict[str, Any]
 
 @app.get("/")
 def home():
@@ -66,5 +71,18 @@ def ai_summary(request: ChatRequest):
 
     return {
         "user_message": request.message,
+        "ai_response": ai_response
+    }
+
+@app.post("/api/ai-deep-dive")
+def ai_deep_dive(request: DeepDiveRequest):
+    ai_response = ask_calendar_deep_dive(
+        question=request.question,
+        events=request.events,
+        metrics=request.metrics
+    )
+
+    return {
+        "question": request.question,
         "ai_response": ai_response
     }
