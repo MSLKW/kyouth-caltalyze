@@ -51,3 +51,22 @@ export function CalendarIcon(props) {
 		</svg>
 	)
 }
+
+export function ChevronDownIcon(props) {
+	return (
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+			strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<path d="M6 9l6 6 6-6" />
+		</svg>
+	)
+}
+
+export function ArrowRightIcon(props) {
+	return (
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+			strokeLinecap="round" strokeLinejoin="round" {...props}>
+			<path d="M4 12h16" />
+			<path d="M13 5l7 7-7 7" />
+		</svg>
+	)
+}
