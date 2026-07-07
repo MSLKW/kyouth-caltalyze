@@ -1,86 +1,118 @@
-import { SparkIcon, CalendarIcon } from './Icons.jsx'
+import { useEffect, useRef, useState } from 'react'
+import { SparkIcon, ArrowRightIcon } from './Icons.jsx'
 import MiniMarkdown from './MiniMarkdown.jsx'
 
-function formatTime(iso) {
-	if (!iso) return '—'
-	const d = new Date(iso)
-	return d.toLocaleString(undefined, {
-		weekday: 'short',
-		month: 'short',
-		day: 'numeric',
-		hour: 'numeric',
-		minute: '2-digit',
-	})
-}
-
-function MetricPill({ label, value }) {
+function TypingBubble() {
 	return (
-		<div className="bg-slate-50 rounded-xl px-4 py-3 min-w-[120px]">
-			<p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">{label}</p>
-			<p className="text-base font-semibold text-slate-800 mt-0.5">{value}</p>
+		<div className="flex items-end gap-2.5">
+			<div className="shrink-0 w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center">
+				<SparkIcon className="w-3.5 h-3.5" />
+			</div>
+			<div className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+				<span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.3s]" />
+				<span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.15s]" />
+				<span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" />
+			</div>
 		</div>
 	)
 }
 
-export default function AiDeepDive({ data }) {
-	const metrics = data?.metrics
-	const events = data?.events || []
+function ChatMessage({ message }) {
+	const isUser = message.role === 'user'
 
-	return (
-		<div className="w-full h-full overflow-y-auto scroll-quiet p-5">
-			<div className="max-w-4xl mx-auto flex flex-col gap-5">
-				<div className="bg-white rounded-2xl border border-slate-200 p-6">
-					<div className="flex items-center gap-2 mb-1">
-						<SparkIcon className="w-4 h-4 text-indigo-500" />
-						<h1 className="text-lg font-semibold text-slate-800">AI Deep Dive</h1>
-					</div>
-					<p className="text-xs text-slate-400 mb-5">
-						Based on {metrics?.total_events ?? events.length} events from {data?.filename || 'your calendar'}
-					</p>
-
-					<div className="flex flex-wrap gap-3 mb-6">
-						<MetricPill label="Total time" value={`${metrics?.total_meeting_hours ?? '—'}h`} />
-						<MetricPill label="Average length" value={`${metrics?.average_meeting_minutes ?? '—'} min`} />
-						<MetricPill label="Longest" value={`${metrics?.longest_meeting_minutes ?? '—'} min`} />
-						<MetricPill label="Shortest" value={`${metrics?.shortest_meeting_minutes ?? '—'} min`} />
-						<MetricPill label="Busiest day" value={metrics?.busiest_day ?? '—'} />
-					</div>
-
-					{data?.ai_insight ? (
-						<MiniMarkdown content={data.ai_insight} />
-					) : (
-						<p className="text-sm text-slate-400">Import a calendar analysis file to generate an AI deep dive.</p>
-					)}
-				</div>
-
-				<div className="bg-white rounded-2xl border border-slate-200 p-6">
-					<div className="flex items-center gap-2 mb-4">
-						<CalendarIcon className="w-4 h-4 text-slate-400" />
-						<h2 className="text-sm font-semibold text-slate-700">Event ledger</h2>
-					</div>
-					<div className="flex flex-col divide-y divide-slate-100">
-						{events.map((e, i) => (
-							<div key={i} className="py-3 flex items-start justify-between gap-4">
-								<div>
-									<p className="text-sm font-medium text-slate-800">{e.summary}</p>
-									<p className="text-xs text-slate-400 mt-0.5">
-										{formatTime(e.start_time)} · {e.location}
-									</p>
-									{e.description && (
-										<p className="text-xs text-slate-500 mt-1 max-w-lg">{e.description}</p>
-									)}
-								</div>
-								<span className="text-xs font-medium text-slate-500 whitespace-nowrap bg-slate-50 rounded-full px-2.5 py-1">
-									{e.duration_minutes} min
-								</span>
-							</div>
-						))}
-						{events.length === 0 && (
-							<p className="text-sm text-slate-400 py-3">No events to show yet.</p>
-						)}
-					</div>
+	if (isUser) {
+		return (
+			<div className="flex justify-end">
+				<div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed">
+					{message.content}
 				</div>
 			</div>
+		)
+	}
+
+	return (
+		<div className="flex items-end gap-2.5">
+			<div className="shrink-0 w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center">
+				<SparkIcon className="w-3.5 h-3.5" />
+			</div>
+			<div
+				className={
+					"max-w-[75%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm " +
+					(message.isError ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-700")
+				}
+			>
+				<MiniMarkdown content={message.content} />
+			</div>
+		</div>
+	)
+}
+
+export default function AiDeepDive({ data, messages, onSendMessage }) {
+	const [draft, setDraft] = useState('')
+	const [isSending, setIsSending] = useState(false)
+	const scrollRef = useRef(null)
+
+	useEffect(() => {
+		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+	}, [messages, isSending])
+
+	const handleSubmit = async (e) => {
+		e.preventDefault()
+		const text = draft.trim()
+		if (!text || isSending) return
+		setDraft('')
+		setIsSending(true)
+		try {
+			await onSendMessage(text)
+		} finally {
+			setIsSending(false)
+		}
+	}
+
+	return (
+		<div className="w-full h-full flex flex-col p-5">
+			<div className="flex items-center gap-2 mb-4 shrink-0">
+				<SparkIcon className="w-4 h-4 text-indigo-500" />
+				<h1 className="text-lg font-semibold text-slate-800">AI Deep Dive</h1>
+				<span className="text-xs text-slate-400 ml-1">
+					{data?.filename ? `· ${data.filename}` : ''}
+				</span>
+			</div>
+
+			<div
+				ref={scrollRef}
+				className="flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 overflow-y-auto scroll-quiet p-5 flex flex-col gap-4"
+			>
+				{messages.length === 0 ? (
+					<p className="m-auto text-sm text-slate-400">
+						Import a calendar to start chatting with the AI about it.
+					</p>
+				) : (
+					messages.map((message) => <ChatMessage key={message.id} message={message} />)
+				)}
+				{isSending && <TypingBubble />}
+			</div>
+
+			<form onSubmit={handleSubmit} className="mt-4 shrink-0">
+				<div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full pl-5 pr-2 py-2 focus-within:border-indigo-400 transition-colors">
+					<input
+						type="text"
+						value={draft}
+						onChange={(e) => setDraft(e.target.value)}
+						placeholder="Ask about your meetings, patterns, or recommendations…"
+						disabled={isSending}
+						className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400 disabled:opacity-60"
+					/>
+					<button
+						type="submit"
+						disabled={isSending || !draft.trim()}
+						aria-label="Send message"
+						className="shrink-0 w-9 h-9 rounded-full bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-200 disabled:cursor-not-allowed cursor-pointer text-white flex items-center justify-center transition-colors"
+					>
+						<ArrowRightIcon className="w-4 h-4" />
+					</button>
+				</div>
+			</form>
 		</div>
 	)
 }

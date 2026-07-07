@@ -2,19 +2,29 @@
 // calendar-analysis JSON (events, metrics, ai_insight) described in the
 // project brief.
 //
-// Configure the backend origin via VITE_API_BASE_URL (e.g. in a .env file):
-//   VITE_API_BASE_URL=http://localhost:8000
-// Falls back to a relative path, which works if the backend is proxied
-// under the same origin (e.g. via Vite's server.proxy, or same-domain deploy).
-
+// In production (docker-compose), this is left as a relative path and
+// nginx reverse-proxies /api/* to the backend service — no build-time
+// config needed. For local `npm run dev` without Docker, set
+// VITE_API_BASE_URL (e.g. in .env.local) to point directly at a backend
+// you're running separately, e.g. http://localhost:8000.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const ANALYZE_ENDPOINT = `${API_BASE_URL}/api/upload-calendar`
+const CHAT_ENDPOINT = `${API_BASE_URL}/api/chat`
 
 export class CalendarApiError extends Error {
 	constructor(message, status) {
 		super(message)
 		this.name = 'CalendarApiError'
 		this.status = status
+	}
+}
+
+async function parseErrorDetail(response) {
+	try {
+		const errBody = await response.json()
+		return errBody?.message || errBody?.detail || ''
+	} catch {
+		return ''
 	}
 }
 
@@ -42,13 +52,7 @@ export async function analyzeCalendarFile(file) {
 	}
 
 	if (!response.ok) {
-		let detail = ''
-		try {
-			const errBody = await response.json()
-			detail = errBody?.message || errBody?.detail || ''
-		} catch {
-			// response wasn't JSON, ignore
-		}
+		const detail = await parseErrorDetail(response)
 		throw new CalendarApiError(
 			detail || `The server rejected the file (status ${response.status}).`,
 			response.status,
@@ -56,4 +60,37 @@ export async function analyzeCalendarFile(file) {
 	}
 
 	return response.json()
+}
+
+/**
+ * Sends a question to the AI Deep Dive chat, grounded in the currently
+ * loaded calendar's events and metrics, and returns the assistant's reply text.
+ * @param {{ message: string, events: object[], metrics: object }} params
+ * @returns {Promise<string>}
+ */
+export async function sendChatMessage({ message, events, metrics }) {
+	let response
+	try {
+		response = await fetch(CHAT_ENDPOINT, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ message, events, metrics }),
+		})
+	} catch (networkErr) {
+		throw new CalendarApiError(
+			'Could not reach the AI. Check that the backend is running.',
+			0,
+		)
+	}
+
+	if (!response.ok) {
+		const detail = await parseErrorDetail(response)
+		throw new CalendarApiError(
+			detail || `The server rejected the request (status ${response.status}).`,
+			response.status,
+		)
+	}
+
+	const body = await response.json()
+	return body.reply
 }
