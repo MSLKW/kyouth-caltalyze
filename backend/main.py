@@ -1,24 +1,19 @@
-from fastapi import FastAPI, UploadFile, File
-from pydantic import BaseModel
 from typing import Any
 
-from backend.ai_service import ask_ai, generate_calendar_insight, ask_calendar_deep_dive
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from pydantic import BaseModel
+
+from backend.ai_service import generate_calendar_insight, ask_calendar_deep_dive
 from backend.calendar_parser import parse_calendar_file
 from backend.metrics_service import calculate_metrics
 
 app = FastAPI()
 
-app.frontend("/", directory="dist")
-
 
 class ChatRequest(BaseModel):
     message: str
-
-
-class DeepDiveRequest(BaseModel):
-    question: str
     events: list[dict[str, Any]]
-    metrics: dict[str, Any]
+    metrics: dict[str, Any] | None = None
 
 
 @app.get("/api/health")
@@ -28,13 +23,13 @@ def health_check():
 
 @app.post("/api/upload-calendar")
 async def upload_calendar(file: UploadFile = File(...)):
-    if not file.filename.endswith(".ics"):
-        return {"error": "Only .ics calendar files are allowed"}
+    if not file.filename or not file.filename.endswith(".ics"):
+        raise HTTPException(status_code=400, detail="Please upload a .ics calendar file.")
 
     content = await file.read()
 
     if not content:
-        return {"error": "Uploaded file is empty"}
+        raise HTTPException(status_code=400, detail="Uploaded calendar file is empty.")
 
     try:
         text_content = content.decode("utf-8", errors="ignore")
@@ -50,21 +45,27 @@ async def upload_calendar(file: UploadFile = File(...)):
             "ai_insight": ai_insight,
             "message": "Calendar file analyzed successfully",
         }
+
     except Exception as error:
-        return {"error": "Failed to process calendar file", "details": str(error)}
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process calendar file: {str(error)}",
+        )
 
 
-@app.post("/api/ai-summary")
-def ai_summary(request: ChatRequest):
-    ai_response = ask_ai(request.message)
+@app.post("/api/chat")
+def chat(request: ChatRequest):
+    try:
+        ai_reply = ask_calendar_deep_dive(
+            message=request.message,
+            events=request.events,
+            metrics=request.metrics,
+        )
 
-    return {"user_message": request.message, "ai_response": ai_response}
+        return {"reply": ai_reply}
 
-
-@app.post("/api/ai-deep-dive")
-def ai_deep_dive(request: DeepDiveRequest):
-    ai_response = ask_calendar_deep_dive(
-        question=request.question, events=request.events, metrics=request.metrics
-    )
-
-    return {"question": request.question, "ai_response": ai_response}
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate AI reply: {str(error)}",
+        )
