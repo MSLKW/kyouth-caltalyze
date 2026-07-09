@@ -7,9 +7,9 @@
 // config needed. For local `npm run dev` without Docker, set
 // VITE_API_BASE_URL (e.g. in .env.local) to point directly at a backend
 // you're running separately, e.g. http://localhost:8000.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-const ANALYZE_ENDPOINT = `${API_BASE_URL}/api/upload-calendar`
-const CHAT_ENDPOINT = `${API_BASE_URL}/api/chat`
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api"
+const ANALYZE_ENDPOINT = `${API_BASE_URL}/upload-calendar`
+const CHAT_ENDPOINT = `${API_BASE_URL}/chat`
 
 export class CalendarApiError extends Error {
 	constructor(message, status) {
