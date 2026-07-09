@@ -9,6 +9,7 @@ from backend.metrics_service import calculate_metrics
 
 app = FastAPI()
 
+app.frontend("/", directory="dist")
 
 class ChatRequest(BaseModel):
     message: str
